@@ -2,6 +2,7 @@ import type { Response } from "express";
 import { Types } from "mongoose";
 
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
+import PlannerProfile from "../models/PlannerProfile.js";
 import StudyPlan, {
   type StudySessionFeedback,
   type StudySessionStatus,
@@ -10,6 +11,7 @@ import {
   applyAdaptiveAdjustment,
   calculateAdaptiveAdjustment,
 } from "../services/adaptive.service.js";
+import { rescheduleIncompleteSession } from "../services/reschedule.service.js";
 
 const validStatuses: StudySessionStatus[] = [
   "planned",
@@ -89,15 +91,29 @@ export async function updateStudySession(
       return;
     }
 
-    const studyPlan = await StudyPlan.findOne({
-      userId: req.userId,
-      "sessions._id": sessionId,
-    } as any);
+    const [studyPlan, plannerProfile] = await Promise.all([
+      StudyPlan.findOne({
+        userId: req.userId,
+        "sessions._id": sessionId,
+      } as any),
+
+      PlannerProfile.findOne({
+        userId: req.userId,
+      } as any),
+    ]);
 
     if (!studyPlan) {
       res.status(404).json({
         success: false,
         message: "Study session was not found.",
+      });
+      return;
+    }
+
+    if (!plannerProfile) {
+      res.status(404).json({
+        success: false,
+        message: "Planner setup was not found.",
       });
       return;
     }
@@ -144,12 +160,19 @@ export async function updateStudySession(
       adaptiveResult.priorityAdjustment,
     );
 
+    const rescheduleResult = rescheduleIncompleteSession(
+      studyPlan.sessions,
+      session,
+      plannerProfile,
+    );
+
     await studyPlan.save();
 
     res.status(200).json({
       success: true,
       message: "Study session updated successfully.",
       adaptation: adaptiveResult,
+      rescheduling: rescheduleResult,
       session,
     });
   } catch (error) {
