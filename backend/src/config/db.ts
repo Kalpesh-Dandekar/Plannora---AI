@@ -8,10 +8,15 @@ export async function connectToDatabase(): Promise<void> {
   }
 
   try {
-    await mongoose.connect(mongodbUri);
-    console.log("Connected to MongoDB.");
+    await mongoose.connect(mongodbUri, {
+      dbName: "plannora",
+    });
+
+    console.log("MongoDB connected successfully.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message =
+      error instanceof Error ? error.message : "Unknown MongoDB connection error";
+
     console.error(`MongoDB connection failed: ${message}`);
     throw error;
   }
