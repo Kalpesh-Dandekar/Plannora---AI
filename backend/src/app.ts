@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 
 import authRouter from "./routes/auth.routes.js";
+import aiRouter from "./routes/ai.routes.js";
 import accountRouter from "./routes/account.routes.js";
 import healthRouter from "./routes/health.routes.js";
 import plannerRouter from "./routes/planner.routes.js";
@@ -28,6 +29,7 @@ app.use(express.json());
 
 app.use("/health", healthRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/ai", aiRouter);
 app.use("/api/account", accountRouter);
 app.use("/api/planner", plannerRouter);
 app.use("/api/study-plan", studyPlanRouter);

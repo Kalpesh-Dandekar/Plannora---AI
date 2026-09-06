@@ -62,3 +62,9 @@ export interface PlannerResponse { success: true; profile?: { period?: string; s
 export interface StudyPlanResponse { success: true; plan?: { sessions: StudySession[] } }
 export interface RescueResponse { success: true; message: string; rescue: { movedSessions: number; recoveredMinutes: number; overloadedTopics: string[]; remainingUnscheduledMinutes: number }; plan: { sessions: StudySession[] } }
 export interface QuickPlanResponse { success: true; quickPlan: { requestedMinutes: number; allocatedMinutes: number; remainingMinutes: number; sessions: Array<{ subject: string; topic: string; durationMinutes: number; strategy: string; priorityScore: number; why: string }> } }
+export type AiSource = "ai" | "fallback";
+export interface AiWhyResponse { success: true; source: AiSource; explanation: { headline: string; reason: string; focusTip: string } }
+export interface AiStudyStrategyResponse { success: true; source: AiSource; strategy: { subject: string; topic: string; recommendedStrategy: "Concepts" | "Practice" | "Revision" | "Active Recall" | "Concepts + Practice"; reason: string; nextAction: string; suggestedMinutes: number } }
+export interface AiRecoveryResponse { success: true; source: AiSource; coach: { summary: string; priority: string; nextStep: string; warning: string | null } }
+export interface AiExamStrategyResponse { success: true; source: AiSource; strategy: { summary: string; topPriorities: string[]; dailyApproach: string; revisionAdvice: string; risk: "low" | "medium" | "high" } }
+export interface AiInsightsResponse { success: true; source: AiSource; insights: { summary: string; observations: Array<{ title: string; detail: string; type: "strength" | "warning" | "opportunity" }>; actions: string[] } }

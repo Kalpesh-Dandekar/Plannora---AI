@@ -12,6 +12,8 @@ import {
 
 import { AdaptiveActions } from "./adaptive-actions";
 import { PageHeader } from "./primitives";
+import { apiRequest } from "@/lib/api";
+import type { AiStudyStrategyResponse, AiWhyResponse } from "@/lib/api-types";
 
 type StudySessionStatus =
   | "planned"
@@ -228,6 +230,9 @@ export function PlanView() {
   const [why, setWhy] = useState(false);
   const [selectedSession, setSelectedSession] =
     useState<DisplaySession | null>(null);
+  const [aiWhy, setAiWhy] = useState<AiWhyResponse | null>(null);
+  const [aiStrategy, setAiStrategy] = useState<AiStudyStrategyResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [studySessions, setStudySessions] = useState<
     StudySession[]
   >([]);
@@ -335,9 +340,24 @@ export function PlanView() {
     });
   }, [displaySessions]);
 
-  const openWhy = (session: DisplaySession) => {
+  const openWhy = async (session: DisplaySession) => {
     setSelectedSession(session);
     setWhy(true);
+    setAiWhy(null);
+    setAiStrategy(null);
+    setAiLoading(true);
+    try {
+      const [explanation, strategy] = await Promise.all([
+        apiRequest<AiWhyResponse>("/api/ai/why-this", { method: "POST", body: JSON.stringify({ sessionId: session.id }) }),
+        apiRequest<AiStudyStrategyResponse>("/api/ai/study-strategy", { method: "POST", body: JSON.stringify({ subject: session.subject, topic: session.topic }) }),
+      ]);
+      setAiWhy(explanation);
+      setAiStrategy(strategy);
+    } catch (error) {
+      console.error("AI session guidance could not be loaded:", error);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -395,7 +415,7 @@ export function PlanView() {
 
                     {session.priority && (
                       <button
-                        onClick={() => openWhy(session)}
+                        onClick={() => void openWhy(session)}
                       >
                         <CircleHelp /> Why this?
                       </button>
@@ -427,7 +447,7 @@ export function PlanView() {
 
                 {session.priority && (
                   <button
-                    onClick={() => openWhy(session)}
+                    onClick={() => void openWhy(session)}
                   >
                     <CircleHelp /> Why this?
                   </button>
@@ -464,20 +484,18 @@ export function PlanView() {
             <Sparkles /> PRIORITY CONTEXT
           </span>
 
-          <h2 id="why-title">
-            Why {selectedSession.topic}?
-          </h2>
+          <h2 id="why-title">{aiWhy?.explanation.headline ?? `Why ${selectedSession.topic}?`}</h2>
 
           <p>
-            This topic is prioritized using the setup
-            information you provided:
+            {aiLoading ? "Preparing personalized guidance..." : aiWhy?.explanation.reason ?? "This topic is prioritized using the setup information you provided:"}
           </p>
 
           <ul>
             <li>
               <CheckDot />
-              {selectedSession.why}
+              {aiWhy?.explanation.focusTip ?? selectedSession.why}
             </li>
+            {aiStrategy && <li><CheckDot />{aiStrategy.strategy.recommendedStrategy}: {aiStrategy.strategy.nextAction} ({aiStrategy.strategy.suggestedMinutes} min)</li>}
           </ul>
 
           <small>

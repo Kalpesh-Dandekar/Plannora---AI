@@ -7,6 +7,7 @@ import type {
   ProgressResponse,
   QuickPlanResponse,
   RescueResponse,
+  AiRecoveryResponse,
 } from "@/lib/api-types";
 
 export function AdaptiveActions() {
@@ -20,6 +21,7 @@ export function AdaptiveActions() {
   >(null);
   const [minutes, setMinutes] = useState(45);
   const [loading, setLoading] = useState(false);
+  const [coach, setCoach] = useState<AiRecoveryResponse["coach"] | null>(null);
 
   useEffect(() => {
     if (modal !== "rescue") return;
@@ -71,6 +73,12 @@ export function AdaptiveActions() {
       });
       setRescue(data);
       notifyDataUpdated();
+      try {
+        const coaching = await apiRequest<AiRecoveryResponse>("/api/ai/recovery-coach", { method: "POST", body: JSON.stringify(data.rescue) });
+        setCoach(coaching.coach);
+      } catch (error) {
+        console.error("Recovery coaching could not be loaded:", error);
+      }
     } catch (error) {
       console.error("Study plan rescue failed:", error);
     } finally {
@@ -84,6 +92,7 @@ export function AdaptiveActions() {
         <button
           onClick={() => {
             setRescue(null);
+            setCoach(null);
             setModal("rescue");
           }}
         >
@@ -142,7 +151,8 @@ export function AdaptiveActions() {
                       <Sparkles /> PLAN UPDATED
                     </span>
                     <h2 id="modal-title">Your recovery plan is ready.</h2>
-                    <p>{rescue.message}</p>
+                    <p>{coach?.summary ?? rescue.message}</p>
+                    {coach && <p>{coach.priority} {coach.nextStep} {coach.warning}</p>}
                     <button onClick={() => setModal(null)}>Done</button>
                   </div>
                 ) : (

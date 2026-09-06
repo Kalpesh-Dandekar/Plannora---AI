@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -11,6 +11,8 @@ import {
 import { apiRequest } from "@/lib/api";
 import type {
   ExamsResponse,
+  AiExamStrategyResponse,
+  AiInsightsResponse,
   ProgressResponse,
   SubjectProgress,
   SubjectsResponse,
@@ -168,6 +170,8 @@ export function SubjectsView() {
 export function ExamsView() {
   const [exam, setExam] = useState<ExamsResponse["exam"]>(null);
   const [subjects, setSubjects] = useState<SubjectProgress[]>([]);
+  const [aiStrategy, setAiStrategy] = useState<AiExamStrategyResponse["strategy"] | null>(null);
+  const requestedAi = useRef(false);
   useEffect(() => {
     void Promise.all([
       apiRequest<ExamsResponse>("/api/exams"),
@@ -178,6 +182,13 @@ export function ExamsView() {
         setSubjects(subjectData.subjects);
       })
       .catch((error) => console.error("Exam data could not be loaded:", error));
+  }, []);
+  useEffect(() => {
+    if (requestedAi.current) return;
+    requestedAi.current = true;
+    void apiRequest<AiExamStrategyResponse>("/api/ai/exam-strategy")
+      .then((data) => setAiStrategy(data.strategy))
+      .catch((error) => console.error("Exam strategy could not be loaded:", error));
   }, []);
   const coverage = exam?.totalTopics
     ? Math.round((exam.preparedTopics / exam.totalTopics) * 100)
@@ -260,6 +271,7 @@ export function ExamsView() {
         </section>
         <section>
           <h2>Topics in focus</h2>
+          {aiStrategy && <p>{aiStrategy.summary} {aiStrategy.dailyApproach}</p>}
           {subjects
             .flatMap((subject) => subject.topics)
             .sort((a, b) => b.currentPriorityScore - a.currentPriorityScore)
@@ -284,10 +296,19 @@ export function ProgressView() {
   const [progress, setProgress] = useState<ProgressResponse["progress"] | null>(
     null,
   );
+  const [aiInsights, setAiInsights] = useState<AiInsightsResponse["insights"] | null>(null);
+  const requestedAi = useRef(false);
   useEffect(() => {
     void apiRequest<ProgressResponse>("/api/progress")
       .then((data) => setProgress(data.progress))
       .catch((error) => console.error("Progress could not be loaded:", error));
+  }, []);
+  useEffect(() => {
+    if (requestedAi.current) return;
+    requestedAi.current = true;
+    void apiRequest<AiInsightsResponse>("/api/ai/insights")
+      .then((data) => setAiInsights(data.insights))
+      .catch((error) => console.error("Study insights could not be loaded:", error));
   }, []);
   const week = progress?.weeklyProgress ?? [];
   const maxMinutes = Math.max(1, ...week.map((day) => day.plannedMinutes));
@@ -396,12 +417,17 @@ export function ProgressView() {
         </div>
       </div>
       <Insight title="A useful pattern">
-        {progress?.strongerAreas[0]
+        {aiInsights?.summary ?? (progress?.strongerAreas[0]
           ? `${progress.strongerAreas[0].name} is currently your strongest measured topic.`
-          : "Complete sessions to reveal a useful pattern."}
+          : "Complete sessions to reveal a useful pattern.")}
       </Insight>
       <section className="weak-list">
         <h2>Needs attention</h2>
+        {aiInsights?.observations.map((observation) => (
+          <article key={`${observation.type}-${observation.title}`}>
+            <Target /><span><b>{observation.title}</b><small>{observation.detail}</small></span><ArrowRight />
+          </article>
+        ))}
         {weak.map((topic) => (
           <article key={`${topic.subject}-${topic.name}`}>
             <Target />
