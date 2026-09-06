@@ -3,6 +3,7 @@ import type {
   IStudySession,
   StudySessionStatus,
 } from "../models/StudyPlan.js";
+import { parseDateOnly, toDateOnly } from "./date.service.js";
 
 interface RescheduleResult {
   rescheduled: boolean;
@@ -19,20 +20,6 @@ const DAY_NAMES = [
   "Friday",
   "Saturday",
 ] as const;
-
-function parseDateOnly(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-
-  return new Date(year, month - 1, day);
-}
-
-function toDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
 
 function addDays(date: Date, amount: number): Date {
   const next = new Date(date);
@@ -98,7 +85,7 @@ function isBeforeExam(
 
   const examDate = parseDateOnly(profile.exam.date);
 
-  if (Number.isNaN(examDate.getTime())) {
+  if (!examDate) {
     return true;
   }
 
@@ -129,6 +116,10 @@ function findNextAvailableDate(
   requiredMinutes: number,
 ): string | null {
   const baseDate = parseDateOnly(currentDate);
+
+  if (!baseDate) {
+    return null;
+  }
 
   for (let offset = 1; offset <= 14; offset += 1) {
     const candidate = addDays(baseDate, offset);
