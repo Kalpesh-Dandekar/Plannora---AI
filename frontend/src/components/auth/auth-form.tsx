@@ -222,7 +222,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </Link>
       </p>
       <small className="mock-note">
-        UI preview only — no credentials are stored or sent.
+        Your account credentials are used to authenticate this session.
       </small>
     </>
   );

@@ -570,7 +570,7 @@ export function GenerateStep({
             <h3>Your first study sessions</h3>
           </div>
 
-          <span>Local preview</span>
+          <span>Plan preview</span>
         </header>
 
         {sessions.map((s) => (
@@ -619,8 +619,8 @@ export function GenerateStep({
         </div>
 
         <small>
-          This deterministic preview is for the UI flow. The scheduling engine
-          will replace it later.
+          This preview reflects your setup. Your saved plan is available on the
+          Dashboard.
         </small>
       </div>
 

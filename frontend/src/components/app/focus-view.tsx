@@ -324,8 +324,7 @@ export function FocusView() {
         </div>
 
         <small>
-          Timer runs only in this browser tab. Nothing is
-          saved yet.
+          Timer runs locally; your result is saved when you end the session.
         </small>
       </section>
 

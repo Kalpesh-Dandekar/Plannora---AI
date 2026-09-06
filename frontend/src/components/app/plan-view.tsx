@@ -232,6 +232,13 @@ export function PlanView() {
     StudySession[]
   >([]);
   const [period, setPeriod] = useState("Flexible");
+  const [refreshVersion, setRefreshVersion] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setRefreshVersion((value) => value + 1);
+    window.addEventListener("plannora:data-updated", refresh);
+    return () => window.removeEventListener("plannora:data-updated", refresh);
+  }, []);
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -286,7 +293,7 @@ export function PlanView() {
     };
 
     void loadPlan();
-  }, []);
+  }, [refreshVersion]);
 
   const displaySessions = useMemo(
     () => createDisplaySessions(studySessions, period),

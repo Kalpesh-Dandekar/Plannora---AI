@@ -2,34 +2,675 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CalendarClock, Check, Clock3, Coffee, Moon, Plus, Sparkles, Sun, Sunset, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Clock3,
+  Coffee,
+  Moon,
+  Plus,
+  Sparkles,
+  Sun,
+  Sunset,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Logo } from "@/components/ui/logo";
-import { GenerateStep, GoalsStep, ReviewStep } from "@/components/planner/advanced-steps";
+import {
+  GenerateStep,
+  GoalsStep,
+  ReviewStep,
+} from "@/components/planner/advanced-steps";
 
-type Mode="regular"|"exam"; type Difficulty="Easy"|"Medium"|"Hard"; type Prep="Not Started"|"Learning"|"Revision Needed"|"Confident";
-type Topic={id:number;name:string;difficulty:Difficulty;prep:Prep}; type Subject={id:number;name:string;topics:Topic[]};
-const steps=["Mode","Subjects","Availability","Goals","Review","Generate"];
-const initialSubjects:Subject[]=[{id:1,name:"Data Structures",topics:[{id:11,name:"Graph Traversal",difficulty:"Hard",prep:"Learning"},{id:12,name:"Dynamic Programming",difficulty:"Medium",prep:"Not Started"},{id:13,name:"Trees",difficulty:"Easy",prep:"Revision Needed"}]}];
-const week=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+type Mode = "regular" | "exam";
+type Difficulty = "Easy" | "Medium" | "Hard";
+type Prep = "Not Started" | "Learning" | "Revision Needed" | "Confident";
+type Topic = { id: number; name: string; difficulty: Difficulty; prep: Prep };
+type Subject = { id: number; name: string; topics: Topic[] };
+const steps = [
+  "Mode",
+  "Subjects",
+  "Availability",
+  "Goals",
+  "Review",
+  "Generate",
+];
+const initialSubjects: Subject[] = [
+  {
+    id: 1,
+    name: "Data Structures",
+    topics: [
+      { id: 11, name: "Graph Traversal", difficulty: "Hard", prep: "Learning" },
+      {
+        id: 12,
+        name: "Dynamic Programming",
+        difficulty: "Medium",
+        prep: "Not Started",
+      },
+      { id: 13, name: "Trees", difficulty: "Easy", prep: "Revision Needed" },
+    ],
+  },
+];
+const week = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
-export function PlannerSetup(){
- const [step,setStep]=useState(1); const [mode,setMode]=useState<Mode|undefined>(); const [exam,setExam]=useState({name:"",date:""}); const [subjects,setSubjects]=useState(initialSubjects); const [days,setDays]=useState<Record<string,number>>({Monday:2,Tuesday:2,Wednesday:0,Thursday:2,Friday:2,Saturday:3,Sunday:0}); const [period,setPeriod]=useState("Evening"); const [session,setSession]=useState("45 min"); const [goal,setGoal]=useState(""); const [attention,setAttention]=useState<string[]>([]); const [strategy,setStrategy]=useState("Balanced");
- const total=useMemo(()=>Object.values(days).reduce((a,b)=>a+b,0),[days]); const active=Object.values(days).filter(Boolean).length;
- const modeValid=!!mode&&(mode!=="exam"||!!exam.name.trim()&&!!exam.date); const subjectValid=subjects.some(s=>s.name.trim()&&s.topics.some(t=>t.name.trim()));
- const changeSubject=(id:number,name:string)=>setSubjects(s=>s.map(x=>x.id===id?{...x,name}:x)); const addSubject=()=>setSubjects(s=>[...s,{id:Date.now(),name:"",topics:[{id:Date.now()+1,name:"",difficulty:"Medium",prep:"Not Started"}]}]); const removeSubject=(id:number)=>setSubjects(s=>s.filter(x=>x.id!==id));
- const topicUpdate=(sid:number,tid:number,key:keyof Topic,value:string)=>setSubjects(s=>s.map(x=>x.id!==sid?x:{...x,topics:x.topics.map(t=>t.id===tid?{...t,[key]:value}:t)})); const addTopic=(sid:number)=>setSubjects(s=>s.map(x=>x.id===sid?{...x,topics:[...x.topics,{id:Date.now(),name:"",difficulty:"Medium",prep:"Not Started"}]}:x)); const removeTopic=(sid:number,tid:number)=>setSubjects(s=>s.map(x=>x.id===sid?{...x,topics:x.topics.filter(t=>t.id!==tid)}:x));
- const go=(n:number)=>{setStep(n);window.scrollTo({top:0,behavior:"smooth"})};
- return <main className="planner-page"><header className="planner-header"><Link href="/"><Logo/></Link><span>Create your plan</span><Link href="/">Exit setup <X/></Link></header><div className="stepper" aria-label="Planner progress">{steps.map((s,i)=><div className={`${step===i+1?"current ":""}${step>i+1?"complete":""}`} key={s}><i>{step>i+1?<Check/>:i+1}</i><span>{s}</span></div>)}</div>
- <div className="planner-layout"><section className="planner-content">
- {step===1&&<div className="planner-step"><StepTitle n="01" title="What are you planning for?" copy="Choose the mode that matches what you need right now. You can always adjust this later."/><div className="mode-grid"><ModeCard selected={mode==="regular"} onClick={()=>setMode("regular")} title="Regular Study" tag="Best for everyday learning" text="Build a steady routine for everyday learning, assignments, and long-term progress." exam={false}/><ModeCard selected={mode==="exam"} onClick={()=>setMode("exam")} title="Exam Preparation" tag="Best when deadlines matter" text="Prioritize subjects and topics around upcoming exam dates and limited preparation time." exam/></div>{mode==="exam"&&<div className="exam-fields"><div className="field"><label htmlFor="examName">Exam name</label><input id="examName" value={exam.name} placeholder="Data Structures Mid-Sem" onChange={e=>setExam({...exam,name:e.target.value})}/></div><div className="field"><label htmlFor="examDate">Exam date</label><input id="examDate" type="date" value={exam.date} onChange={e=>setExam({...exam,date:e.target.value})}/></div></div>}<Actions next="Continue to Subjects" disabled={!modeValid} onNext={()=>go(2)}/></div>}
- {step===2&&<div className="planner-step"><StepTitle n="02" title="What do you need to study?" copy="Add your subjects and the topics you want Plannora to plan around."/>{subjects.length?<div className="subjects">{subjects.map((subject,index)=><article className="subject-card" key={subject.id}><div className="subject-head"><span>{String(index+1).padStart(2,"0")}</span><div className="field"><label htmlFor={`subject-${subject.id}`}>Subject name</label><input id={`subject-${subject.id}`} value={subject.name} placeholder="e.g. Operating Systems" onChange={e=>changeSubject(subject.id,e.target.value)}/></div><button aria-label="Remove subject" onClick={()=>removeSubject(subject.id)}><Trash2/></button></div><div className="topic-labels"><span>Topic</span><span>Difficulty</span><span>Preparation</span><span/></div>{subject.topics.map(t=><div className="topic-row" key={t.id}><input aria-label="Topic name" value={t.name} placeholder="Topic name" onChange={e=>topicUpdate(subject.id,t.id,"name",e.target.value)}/><select aria-label="Difficulty" value={t.difficulty} onChange={e=>topicUpdate(subject.id,t.id,"difficulty",e.target.value)}>{["Easy","Medium","Hard"].map(x=><option key={x}>{x}</option>)}</select><select aria-label="Preparation level" value={t.prep} onChange={e=>topicUpdate(subject.id,t.id,"prep",e.target.value)}>{["Not Started","Learning","Revision Needed","Confident"].map(x=><option key={x}>{x}</option>)}</select><button aria-label={`Remove ${t.name||"topic"}`} onClick={()=>removeTopic(subject.id,t.id)}><X/></button></div>)}<button className="add-topic" onClick={()=>addTopic(subject.id)}><Plus/> Add topic</button></article>)}</div>:<div className="empty-subject"><Sparkles/><h3>Start with your first subject.</h3><button onClick={addSubject}><Plus/> Add Subject</button></div>}<button className="add-subject" onClick={addSubject}><Plus/> Add another subject</button><div className="helper-note"><Sparkles/> Difficulty and preparation help Plannora decide what deserves more time.</div><Actions back onBack={()=>go(1)} next="Continue to Availability" disabled={!subjectValid} onNext={()=>go(3)}/></div>}
- {step===3&&<div className="planner-step"><StepTitle n="03" title="When can you actually study?" copy="Plannora builds around the time you really have — not an ideal schedule."/><div className="availability-block"><h3>Your week</h3><div className="day-list">{week.map(day=><div className={`day-row${days[day]?" active":""}`} key={day}><button aria-pressed={!!days[day]} onClick={()=>setDays(d=>({...d,[day]:d[day]?0:2}))}><i>{days[day]?<Check/>:null}</i><span>{day}</span></button><div>{[1,2,3,4].map(h=><button className={days[day]===h?"selected":""} disabled={!days[day]} onClick={()=>setDays(d=>({...d,[day]:h}))} key={h}>{h}h</button>)}</div></div>)}</div></div><ChoiceGroup title="When do you prefer to study?" value={period} set={setPeriod} options={[["Morning",<Sun key="morning"/>],["Afternoon",<Coffee key="afternoon"/>],["Evening",<Sunset key="evening"/>],["Night",<Moon key="night"/>],["Flexible",<CalendarClock key="flexible"/>]]}/><ChoiceGroup title="How long should a typical study session be?" value={session} set={setSession} options={[["25 min",<Clock3 key="25"/>],["45 min",<Clock3 key="45"/>],["60 min",<Clock3 key="60"/>],["Let Plannora decide",<Sparkles key="decide"/>]]}/><p className="session-help">Plannora will balance focus and breaks based on your workload.</p><Actions back onBack={()=>go(2)} next="Continue to Goals" onNext={()=>go(4)}/></div>}
- {step===4&&<GoalsStep state={{mode,exam,subjects,days,period,session,goal,attention,strategy}} setGoal={setGoal} setAttention={setAttention} setStrategy={setStrategy} back={()=>go(3)} next={()=>go(5)}/>}
- {step===5&&<ReviewStep state={{mode,exam,subjects,days,period,session,goal,attention,strategy}} back={()=>go(4)} next={()=>go(6)} edit={go}/>}
- {step===6&&<GenerateStep state={{mode,exam,subjects,days,period,session,goal,attention,strategy}} back={()=>go(5)}/>}
- </section>{step<6&&<aside className="context-panel"><span><Sparkles/> PLANNORA NOTE</span><h3>{step===1?"Two planning modes. One adaptive system.":step===2?"Give priority a useful signal.":step===3?"Your time is a hard constraint.":step===4?"A direction, not a rigid rule.":"Ready to build."}</h3><p>{step===1?"Both modes use the same feedback loop. Exam mode simply gives deadlines more influence.":step===2?"Hard, not-started topics will eventually receive greater attention — without crowding out everything else.":step===3?"Plannora will not schedule beyond the availability you set.":step===4?"Goals and strategy shape how the future engine will structure your sessions.":"Your subjects, priorities, and available time are ready for the local preview."}</p>{step===3&&<div className="week-summary"><small>YOUR WEEK</small><b>{active} study days</b><strong>{total}h available</strong><span>Preferred: {period}</span><span>Session length: {session}</span></div>}</aside>}</div></main>;
+export function PlannerSetup() {
+  const [step, setStep] = useState(1);
+  const [mode, setMode] = useState<Mode | undefined>();
+  const [exam, setExam] = useState({ name: "", date: "" });
+  const [subjects, setSubjects] = useState(initialSubjects);
+  const [days, setDays] = useState<Record<string, number>>({
+    Monday: 2,
+    Tuesday: 2,
+    Wednesday: 0,
+    Thursday: 2,
+    Friday: 2,
+    Saturday: 3,
+    Sunday: 0,
+  });
+  const [period, setPeriod] = useState("Evening");
+  const [session, setSession] = useState("45 min");
+  const [goal, setGoal] = useState("");
+  const [attention, setAttention] = useState<string[]>([]);
+  const [strategy, setStrategy] = useState("Balanced");
+  const total = useMemo(
+    () => Object.values(days).reduce((a, b) => a + b, 0),
+    [days],
+  );
+  const active = Object.values(days).filter(Boolean).length;
+  const modeValid =
+    !!mode && (mode !== "exam" || (!!exam.name.trim() && !!exam.date));
+  const subjectValid = subjects.some(
+    (s) => s.name.trim() && s.topics.some((t) => t.name.trim()),
+  );
+  const changeSubject = (id: number, name: string) =>
+    setSubjects((s) => s.map((x) => (x.id === id ? { ...x, name } : x)));
+  const addSubject = () =>
+    setSubjects((s) => [
+      ...s,
+      {
+        id: Date.now(),
+        name: "",
+        topics: [
+          {
+            id: Date.now() + 1,
+            name: "",
+            difficulty: "Medium",
+            prep: "Not Started",
+          },
+        ],
+      },
+    ]);
+  const removeSubject = (id: number) =>
+    setSubjects((s) => s.filter((x) => x.id !== id));
+  const topicUpdate = (
+    sid: number,
+    tid: number,
+    key: keyof Topic,
+    value: string,
+  ) =>
+    setSubjects((s) =>
+      s.map((x) =>
+        x.id !== sid
+          ? x
+          : {
+              ...x,
+              topics: x.topics.map((t) =>
+                t.id === tid ? { ...t, [key]: value } : t,
+              ),
+            },
+      ),
+    );
+  const addTopic = (sid: number) =>
+    setSubjects((s) =>
+      s.map((x) =>
+        x.id === sid
+          ? {
+              ...x,
+              topics: [
+                ...x.topics,
+                {
+                  id: Date.now(),
+                  name: "",
+                  difficulty: "Medium",
+                  prep: "Not Started",
+                },
+              ],
+            }
+          : x,
+      ),
+    );
+  const removeTopic = (sid: number, tid: number) =>
+    setSubjects((s) =>
+      s.map((x) =>
+        x.id === sid
+          ? { ...x, topics: x.topics.filter((t) => t.id !== tid) }
+          : x,
+      ),
+    );
+  const go = (n: number) => {
+    setStep(n);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  return (
+    <main className="planner-page">
+      <header className="planner-header">
+        <Link href="/">
+          <Logo />
+        </Link>
+        <span>Create your plan</span>
+        <Link href="/">
+          Exit setup <X />
+        </Link>
+      </header>
+      <div className="stepper" aria-label="Planner progress">
+        {steps.map((s, i) => (
+          <div
+            className={`${step === i + 1 ? "current " : ""}${step > i + 1 ? "complete" : ""}`}
+            key={s}
+          >
+            <i>{step > i + 1 ? <Check /> : i + 1}</i>
+            <span>{s}</span>
+          </div>
+        ))}
+      </div>
+      <div className="planner-layout">
+        <section className="planner-content">
+          {step === 1 && (
+            <div className="planner-step">
+              <StepTitle
+                n="01"
+                title="What are you planning for?"
+                copy="Choose the mode that matches what you need right now. You can always adjust this later."
+              />
+              <div className="mode-grid">
+                <ModeCard
+                  selected={mode === "regular"}
+                  onClick={() => setMode("regular")}
+                  title="Regular Study"
+                  tag="Best for everyday learning"
+                  text="Build a steady routine for everyday learning, assignments, and long-term progress."
+                  exam={false}
+                />
+                <ModeCard
+                  selected={mode === "exam"}
+                  onClick={() => setMode("exam")}
+                  title="Exam Preparation"
+                  tag="Best when deadlines matter"
+                  text="Prioritize subjects and topics around upcoming exam dates and limited preparation time."
+                  exam
+                />
+              </div>
+              {mode === "exam" && (
+                <div className="exam-fields">
+                  <div className="field">
+                    <label htmlFor="examName">Exam name</label>
+                    <input
+                      id="examName"
+                      value={exam.name}
+                      placeholder="Data Structures Mid-Sem"
+                      onChange={(e) =>
+                        setExam({ ...exam, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="examDate">Exam date</label>
+                    <input
+                      id="examDate"
+                      type="date"
+                      value={exam.date}
+                      onChange={(e) =>
+                        setExam({ ...exam, date: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+              <Actions
+                next="Continue to Subjects"
+                disabled={!modeValid}
+                onNext={() => go(2)}
+              />
+            </div>
+          )}
+          {step === 2 && (
+            <div className="planner-step">
+              <StepTitle
+                n="02"
+                title="What do you need to study?"
+                copy="Add your subjects and the topics you want Plannora to plan around."
+              />
+              {subjects.length ? (
+                <div className="subjects">
+                  {subjects.map((subject, index) => (
+                    <article className="subject-card" key={subject.id}>
+                      <div className="subject-head">
+                        <span>{String(index + 1).padStart(2, "0")}</span>
+                        <div className="field">
+                          <label htmlFor={`subject-${subject.id}`}>
+                            Subject name
+                          </label>
+                          <input
+                            id={`subject-${subject.id}`}
+                            value={subject.name}
+                            placeholder="e.g. Operating Systems"
+                            onChange={(e) =>
+                              changeSubject(subject.id, e.target.value)
+                            }
+                          />
+                        </div>
+                        <button
+                          aria-label="Remove subject"
+                          onClick={() => removeSubject(subject.id)}
+                        >
+                          <Trash2 />
+                        </button>
+                      </div>
+                      <div className="topic-labels">
+                        <span>Topic</span>
+                        <span>Difficulty</span>
+                        <span>Preparation</span>
+                        <span />
+                      </div>
+                      {subject.topics.map((t) => (
+                        <div className="topic-row" key={t.id}>
+                          <input
+                            aria-label="Topic name"
+                            value={t.name}
+                            placeholder="Topic name"
+                            onChange={(e) =>
+                              topicUpdate(
+                                subject.id,
+                                t.id,
+                                "name",
+                                e.target.value,
+                              )
+                            }
+                          />
+                          <select
+                            aria-label="Difficulty"
+                            value={t.difficulty}
+                            onChange={(e) =>
+                              topicUpdate(
+                                subject.id,
+                                t.id,
+                                "difficulty",
+                                e.target.value,
+                              )
+                            }
+                          >
+                            {["Easy", "Medium", "Hard"].map((x) => (
+                              <option key={x}>{x}</option>
+                            ))}
+                          </select>
+                          <select
+                            aria-label="Preparation level"
+                            value={t.prep}
+                            onChange={(e) =>
+                              topicUpdate(
+                                subject.id,
+                                t.id,
+                                "prep",
+                                e.target.value,
+                              )
+                            }
+                          >
+                            {[
+                              "Not Started",
+                              "Learning",
+                              "Revision Needed",
+                              "Confident",
+                            ].map((x) => (
+                              <option key={x}>{x}</option>
+                            ))}
+                          </select>
+                          <button
+                            aria-label={`Remove ${t.name || "topic"}`}
+                            onClick={() => removeTopic(subject.id, t.id)}
+                          >
+                            <X />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        className="add-topic"
+                        onClick={() => addTopic(subject.id)}
+                      >
+                        <Plus /> Add topic
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-subject">
+                  <Sparkles />
+                  <h3>Start with your first subject.</h3>
+                  <button onClick={addSubject}>
+                    <Plus /> Add Subject
+                  </button>
+                </div>
+              )}
+              <button className="add-subject" onClick={addSubject}>
+                <Plus /> Add another subject
+              </button>
+              <div className="helper-note">
+                <Sparkles /> Difficulty and preparation help Plannora decide
+                what deserves more time.
+              </div>
+              <Actions
+                back
+                onBack={() => go(1)}
+                next="Continue to Availability"
+                disabled={!subjectValid}
+                onNext={() => go(3)}
+              />
+            </div>
+          )}
+          {step === 3 && (
+            <div className="planner-step">
+              <StepTitle
+                n="03"
+                title="When can you actually study?"
+                copy="Plannora builds around the time you really have — not an ideal schedule."
+              />
+              <div className="availability-block">
+                <h3>Your week</h3>
+                <div className="day-list">
+                  {week.map((day) => (
+                    <div
+                      className={`day-row${days[day] ? " active" : ""}`}
+                      key={day}
+                    >
+                      <button
+                        aria-pressed={!!days[day]}
+                        onClick={() =>
+                          setDays((d) => ({ ...d, [day]: d[day] ? 0 : 2 }))
+                        }
+                      >
+                        <i>{days[day] ? <Check /> : null}</i>
+                        <span>{day}</span>
+                      </button>
+                      <div>
+                        {[1, 2, 3, 4].map((h) => (
+                          <button
+                            className={days[day] === h ? "selected" : ""}
+                            disabled={!days[day]}
+                            onClick={() => setDays((d) => ({ ...d, [day]: h }))}
+                            key={h}
+                          >
+                            {h}h
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <ChoiceGroup
+                title="When do you prefer to study?"
+                value={period}
+                set={setPeriod}
+                options={[
+                  ["Morning", <Sun key="morning" />],
+                  ["Afternoon", <Coffee key="afternoon" />],
+                  ["Evening", <Sunset key="evening" />],
+                  ["Night", <Moon key="night" />],
+                  ["Flexible", <CalendarClock key="flexible" />],
+                ]}
+              />
+              <ChoiceGroup
+                title="How long should a typical study session be?"
+                value={session}
+                set={setSession}
+                options={[
+                  ["25 min", <Clock3 key="25" />],
+                  ["45 min", <Clock3 key="45" />],
+                  ["60 min", <Clock3 key="60" />],
+                  ["Let Plannora decide", <Sparkles key="decide" />],
+                ]}
+              />
+              <p className="session-help">
+                Plannora will balance focus and breaks based on your workload.
+              </p>
+              <Actions
+                back
+                onBack={() => go(2)}
+                next="Continue to Goals"
+                onNext={() => go(4)}
+              />
+            </div>
+          )}
+          {step === 4 && (
+            <GoalsStep
+              state={{
+                mode,
+                exam,
+                subjects,
+                days,
+                period,
+                session,
+                goal,
+                attention,
+                strategy,
+              }}
+              setGoal={setGoal}
+              setAttention={setAttention}
+              setStrategy={setStrategy}
+              back={() => go(3)}
+              next={() => go(5)}
+            />
+          )}
+          {step === 5 && (
+            <ReviewStep
+              state={{
+                mode,
+                exam,
+                subjects,
+                days,
+                period,
+                session,
+                goal,
+                attention,
+                strategy,
+              }}
+              back={() => go(4)}
+              next={() => go(6)}
+              edit={go}
+            />
+          )}
+          {step === 6 && (
+            <GenerateStep
+              state={{
+                mode,
+                exam,
+                subjects,
+                days,
+                period,
+                session,
+                goal,
+                attention,
+                strategy,
+              }}
+              back={() => go(5)}
+            />
+          )}
+        </section>
+        {step < 6 && (
+          <aside className="context-panel">
+            <span>
+              <Sparkles /> PLANNORA NOTE
+            </span>
+            <h3>
+              {step === 1
+                ? "Two planning modes. One adaptive system."
+                : step === 2
+                  ? "Give priority a useful signal."
+                  : step === 3
+                    ? "Your time is a hard constraint."
+                    : step === 4
+                      ? "A direction, not a rigid rule."
+                      : "Ready to build."}
+            </h3>
+            <p>
+              {step === 1
+                ? "Both modes use the same feedback loop. Exam mode simply gives deadlines more influence."
+                : step === 2
+                  ? "Hard, not-started topics will eventually receive greater attention — without crowding out everything else."
+                  : step === 3
+                    ? "Plannora will not schedule beyond the availability you set."
+                    : step === 4
+                  ? "Goals and strategy shape how Plannora structures your sessions."
+                  : "Your subjects, priorities, and available time are ready for the plan preview."}
+            </p>
+            {step === 3 && (
+              <div className="week-summary">
+                <small>YOUR WEEK</small>
+                <b>{active} study days</b>
+                <strong>{total}h available</strong>
+                <span>Preferred: {period}</span>
+                <span>Session length: {session}</span>
+              </div>
+            )}
+          </aside>
+        )}
+      </div>
+    </main>
+  );
 }
-function StepTitle({n,title,copy}:{n:string;title:string;copy:string}){return <div className="step-title"><span>STEP {n} OF 06</span><h1>{title}</h1><p>{copy}</p></div>}
-function ModeCard({selected,onClick,title,tag,text,exam}:{selected:boolean;onClick:()=>void;title:string;tag:string;text:string;exam:boolean}){return <button className={`mode-card${selected?" selected":""}`} aria-pressed={selected} onClick={onClick}><div className="mode-check">{selected?<Check/>:null}</div><span>{tag}</span><h3>{title}</h3><p>{text}</p><div className={`mode-visual ${exam?"exam":"regular"}`}>{exam?<><small>EXAM IN 12 DAYS</small><b>Graph Traversal</b><i><em/><em/><em/></i></>:<><small>WEEKLY RHYTHM</small><i>{[1,2,3,4,5,6,7].map(x=><em style={{height:`${10+x%3*7}px`}} key={x}/>)}</i><b>Balanced across 5 days</b></>}</div></button>}
-function Actions({back=false,onBack,next,onNext,disabled=false}:{back?:boolean;onBack?:()=>void;next:string;onNext:()=>void;disabled?:boolean}){return <div className="planner-actions">{back&&<button className="back-button" onClick={onBack}><ArrowLeft/> Back</button>}<button className="next-button" onClick={onNext} disabled={disabled}>{next}<ArrowRight/></button></div>}
-function ChoiceGroup({title,value,set,options}:{title:string;value:string;set:(x:string)=>void;options:[string,React.ReactNode][]}){return <fieldset className="choice-group"><legend>{title}</legend><div>{options.map(([label,icon])=><button type="button" aria-pressed={value===label} className={value===label?"selected":""} onClick={()=>set(label)} key={label}>{icon}<span>{label}</span>{label==="Let Plannora decide"&&<small>Recommended</small>}</button>)}</div></fieldset>}
+function StepTitle({
+  n,
+  title,
+  copy,
+}: {
+  n: string;
+  title: string;
+  copy: string;
+}) {
+  return (
+    <div className="step-title">
+      <span>STEP {n} OF 06</span>
+      <h1>{title}</h1>
+      <p>{copy}</p>
+    </div>
+  );
+}
+function ModeCard({
+  selected,
+  onClick,
+  title,
+  tag,
+  text,
+  exam,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  title: string;
+  tag: string;
+  text: string;
+  exam: boolean;
+}) {
+  return (
+    <button
+      className={`mode-card${selected ? " selected" : ""}`}
+      aria-pressed={selected}
+      onClick={onClick}
+    >
+      <div className="mode-check">{selected ? <Check /> : null}</div>
+      <span>{tag}</span>
+      <h3>{title}</h3>
+      <p>{text}</p>
+      <div className={`mode-visual ${exam ? "exam" : "regular"}`}>
+        {exam ? (
+          <>
+            <small>EXAM IN 12 DAYS</small>
+            <b>Graph Traversal</b>
+            <i>
+              <em />
+              <em />
+              <em />
+            </i>
+          </>
+        ) : (
+          <>
+            <small>WEEKLY RHYTHM</small>
+            <i>
+              {[1, 2, 3, 4, 5, 6, 7].map((x) => (
+                <em style={{ height: `${10 + (x % 3) * 7}px` }} key={x} />
+              ))}
+            </i>
+            <b>Balanced across 5 days</b>
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+function Actions({
+  back = false,
+  onBack,
+  next,
+  onNext,
+  disabled = false,
+}: {
+  back?: boolean;
+  onBack?: () => void;
+  next: string;
+  onNext: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="planner-actions">
+      {back && (
+        <button className="back-button" onClick={onBack}>
+          <ArrowLeft /> Back
+        </button>
+      )}
+      <button className="next-button" onClick={onNext} disabled={disabled}>
+        {next}
+        <ArrowRight />
+      </button>
+    </div>
+  );
+}
+function ChoiceGroup({
+  title,
+  value,
+  set,
+  options,
+}: {
+  title: string;
+  value: string;
+  set: (x: string) => void;
+  options: [string, React.ReactNode][];
+}) {
+  return (
+    <fieldset className="choice-group">
+      <legend>{title}</legend>
+      <div>
+        {options.map(([label, icon]) => (
+          <button
+            type="button"
+            aria-pressed={value === label}
+            className={value === label ? "selected" : ""}
+            onClick={() => set(label)}
+            key={label}
+          >
+            {icon}
+            <span>{label}</span>
+            {label === "Let Plannora decide" && <small>Recommended</small>}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
